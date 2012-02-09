@@ -125,12 +125,14 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 	// ===========================================================
 
 	public PullToRefreshBase(Context context) {
-		this(context, null);
+		super(context);
+		init(context, null);
 	}
 
 	public PullToRefreshBase(Context context, int mode) {
-		this(context);
+		super(context);
 		this.mode = mode;
+		init(context, null);
 	}
 
 	public PullToRefreshBase(Context context, AttributeSet attrs) {
@@ -534,8 +536,10 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 		touchSlop = ViewConfiguration.getTouchSlop();
 
 		// Styleables from XML
-		final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.PullToRefresh);
-		mode = a.getInteger(R.styleable.PullToRefresh_mode, MODE_PULL_DOWN_TO_REFRESH);
+		TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.PullToRefresh);
+		if (a.hasValue(R.styleable.PullToRefresh_mode)) {
+			mode = a.getInteger(R.styleable.PullToRefresh_mode, MODE_PULL_DOWN_TO_REFRESH);
+		}
 
 		// Refreshable View
 		// By passing the attrs, we can add ListView/GridView params via XML

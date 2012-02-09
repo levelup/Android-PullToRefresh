@@ -94,6 +94,9 @@ You can even set the View to enable both Pulling Up and Pulling Down using the n
     ptr:mode="both" />
 ```
 
+## Pull Requests
+
+I will gladly accept pull requests for fixes and feature enhancements but please do them in the dev branch. The master branch is for the latest stable code,  dev is where I try things out before releasing them as stable. Any pull requests that are against master from now on will be closed asking for you to do another pull against dev.
 
 ## Changelog
 
@@ -109,6 +112,11 @@ You can even set the View to enable both Pulling Up and Pulling Down using the n
 ### v1.2.1
 
 * Fix bug where disabling scrolling has no effect when manual refreshing (thanks Maxim Galkin)
+
+### v1.2.2
+
+* String Updates (thanks to Steve Lhomme)
+* Add Missing Constructor (thanks to mcxiaoke)
 
 ## Acknowledgments
 
