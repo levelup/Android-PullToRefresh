@@ -1,6 +1,8 @@
 package com.handmark.pulltorefresh.library.internal;
 
 import android.content.Context;
+import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,90 +22,96 @@ public class LoadingLayout extends FrameLayout {
 
 	static final int DEFAULT_ROTATION_ANIMATION_DURATION = 150;
 
-	private final ImageView headerImage;
-	private final ProgressBar headerProgress;
-	private final TextView headerText;
+	private final ImageView mHeaderImage;
+	private final ProgressBar mHeaderProgress;
+	private final TextView mHeaderText;
 
-	private String pullLabel;
-	private String refreshingLabel;
-	private String releaseLabel;
+	private String mPullLabel;
+	private String mRefreshingLabel;
+	private String mReleaseLabel;
 
-	private final Animation rotateAnimation, resetRotateAnimation;
+	private final Animation mRotateAnimation, mResetRotateAnimation;
 
-	public LoadingLayout(Context context, final int mode, String releaseLabel, String pullLabel, String refreshingLabel) {
+	public LoadingLayout(Context context, final int mode, String releaseLabel, String pullLabel,
+			String refreshingLabel, TypedArray attrs) {
 		super(context);
 		ViewGroup header = (ViewGroup) LayoutInflater.from(context).inflate(R.layout.pull_to_refresh_header, this);
-		headerText = (TextView) header.findViewById(R.id.pull_to_refresh_text);
-		headerImage = (ImageView) header.findViewById(R.id.pull_to_refresh_image);
-		headerProgress = (ProgressBar) header.findViewById(R.id.pull_to_refresh_progress);
+		mHeaderText = (TextView) header.findViewById(R.id.pull_to_refresh_text);
+		mHeaderImage = (ImageView) header.findViewById(R.id.pull_to_refresh_image);
+		mHeaderProgress = (ProgressBar) header.findViewById(R.id.pull_to_refresh_progress);
 
 		final Interpolator interpolator = new LinearInterpolator();
-		rotateAnimation = new RotateAnimation(0, -180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
-		        0.5f);
-		rotateAnimation.setInterpolator(interpolator);
-		rotateAnimation.setDuration(DEFAULT_ROTATION_ANIMATION_DURATION);
-		rotateAnimation.setFillAfter(true);
+		mRotateAnimation = new RotateAnimation(0, -180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
+				0.5f);
+		mRotateAnimation.setInterpolator(interpolator);
+		mRotateAnimation.setDuration(DEFAULT_ROTATION_ANIMATION_DURATION);
+		mRotateAnimation.setFillAfter(true);
 
-		resetRotateAnimation = new RotateAnimation(-180, 0, Animation.RELATIVE_TO_SELF, 0.5f,
-		        Animation.RELATIVE_TO_SELF, 0.5f);
-		resetRotateAnimation.setInterpolator(interpolator);
-		resetRotateAnimation.setDuration(DEFAULT_ROTATION_ANIMATION_DURATION);
-		resetRotateAnimation.setFillAfter(true);
+		mResetRotateAnimation = new RotateAnimation(-180, 0, Animation.RELATIVE_TO_SELF, 0.5f,
+				Animation.RELATIVE_TO_SELF, 0.5f);
+		mResetRotateAnimation.setInterpolator(interpolator);
+		mResetRotateAnimation.setDuration(DEFAULT_ROTATION_ANIMATION_DURATION);
+		mResetRotateAnimation.setFillAfter(true);
 
-		this.releaseLabel = releaseLabel;
-		this.pullLabel = pullLabel;
-		this.refreshingLabel = refreshingLabel;
+		mReleaseLabel = releaseLabel;
+		mPullLabel = pullLabel;
+		mRefreshingLabel = refreshingLabel;
 
 		switch (mode) {
 			case PullToRefreshBase.MODE_PULL_UP_TO_REFRESH:
-				headerImage.setImageResource(R.drawable.pulltorefresh_up_arrow);
+				mHeaderImage.setImageResource(R.drawable.pulltorefresh_up_arrow);
 				break;
 			case PullToRefreshBase.MODE_PULL_DOWN_TO_REFRESH:
 			default:
-				headerImage.setImageResource(R.drawable.pulltorefresh_down_arrow);
+				mHeaderImage.setImageResource(R.drawable.pulltorefresh_down_arrow);
 				break;
+		}
+
+		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderTextColor)) {
+			final int color = attrs.getColor(R.styleable.PullToRefresh_ptrHeaderTextColor, Color.BLACK);
+			setTextColor(color);
 		}
 	}
 
 	public void reset() {
-		headerText.setText(pullLabel);
-		headerImage.setVisibility(View.VISIBLE);
-		headerProgress.setVisibility(View.GONE);
+		mHeaderText.setText(mPullLabel);
+		mHeaderImage.setVisibility(View.VISIBLE);
+		mHeaderProgress.setVisibility(View.GONE);
 	}
 
 	public void releaseToRefresh() {
-		headerText.setText(releaseLabel);
-		headerImage.clearAnimation();
-		headerImage.startAnimation(rotateAnimation);
+		mHeaderText.setText(mReleaseLabel);
+		mHeaderImage.clearAnimation();
+		mHeaderImage.startAnimation(mRotateAnimation);
 	}
 
 	public void setPullLabel(String pullLabel) {
-		this.pullLabel = pullLabel;
+		mPullLabel = pullLabel;
 	}
 
 	public void refreshing() {
-		headerText.setText(refreshingLabel);
-		headerImage.clearAnimation();
-		headerImage.setVisibility(View.INVISIBLE);
-		headerProgress.setVisibility(View.VISIBLE);
+		mHeaderText.setText(mRefreshingLabel);
+		mHeaderImage.clearAnimation();
+		mHeaderImage.setVisibility(View.INVISIBLE);
+		mHeaderProgress.setVisibility(View.VISIBLE);
 	}
 
 	public void setRefreshingLabel(String refreshingLabel) {
-		this.refreshingLabel = refreshingLabel;
+		mRefreshingLabel = refreshingLabel;
 	}
 
 	public void setReleaseLabel(String releaseLabel) {
-		this.releaseLabel = releaseLabel;
+		mReleaseLabel = releaseLabel;
 	}
 
 	public void pullToRefresh() {
-		headerText.setText(pullLabel);
-		headerImage.clearAnimation();
-		headerImage.startAnimation(resetRotateAnimation);
+		mHeaderText.setText(mPullLabel);
+		mHeaderImage.clearAnimation();
+		mHeaderImage.startAnimation(mResetRotateAnimation);
 	}
 
 	public void setTextColor(int color) {
-		headerText.setTextColor(color);
+		mHeaderText.setTextColor(color);
 	}
 
 }

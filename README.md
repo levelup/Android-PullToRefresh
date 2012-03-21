@@ -39,9 +39,9 @@ It can also be styled using XML, such as in the sample ExpandableListView Sample
     android:id="@+id/pull_refresh_expandable_list"
     android:layout_height="fill_parent"
     android:layout_width="fill_parent"
-    ptr:adapterViewBackground="@android:color/white"
-    ptr:headerBackground="@android:color/darker_gray"
-    ptr:headerTextColor="@android:color/white" />
+    ptr:ptrAdapterViewBackground="@android:color/white"
+    ptr:ptrHeaderBackground="@android:color/darker_gray"
+    ptr:ptrHeaderTextColor="@android:color/white" />
 ```
 
 ### Activity
@@ -61,7 +61,6 @@ private class GetDataTask extends AsyncTask<Void, Void, String[]> {
     ...
     @Override
     protected void onPostExecute(String[] result) {
-        mListItems.addFirst("Added after refresh...");
         // Call onRefreshComplete when the list has been refreshed.
         pullToRefreshView.onRefreshComplete();
         super.onPostExecute(result);
@@ -80,7 +79,7 @@ By default this library is set to Pull Down to Refresh, but if you instead to Pu
     android:id="@+id/pull_refresh_list"
     android:layout_height="fill_parent"
     android:layout_width="fill_parent"
-    ptr:mode="pullUpFromBottom" />
+    ptr:ptrMode="pullUpFromBottom" />
 ```
 
 You can even set the View to enable both Pulling Up and Pulling Down using the new 'both' setting. For example:
@@ -91,7 +90,7 @@ You can even set the View to enable both Pulling Up and Pulling Down using the n
     android:id="@+id/pull_refresh_list"
     android:layout_height="fill_parent"
     android:layout_width="fill_parent"
-    ptr:mode="both" />
+    ptr:ptrMode="both" />
 ```
 
 ## Pull Requests
@@ -117,6 +116,27 @@ I will gladly accept pull requests for fixes and feature enhancements but please
 
 * String Updates (thanks to Steve Lhomme)
 * Add Missing Constructor (thanks to mcxiaoke)
+
+### v1.2.3
+
+* Fix Header View's being selectable (can cause FCs)
+* Force ListView Footer to be the last visible item (#41)
+* Fix not being able to Pull when the Empty View is show (#40)
+* Add Japanese Translations (thanks to nagoya0)
+
+#### 1.2.3.1
+
+* Properly fix not being able to Pull when the Empty View is show (#40)
+
+### 1.2.4
+
+* Fix bug where Pulling Up stopped working with ListView (#43)
+* Fix bug where the Header/Footer's wouldn't be styled correctly on ListView (#42)
+* Add new Listener, OnRefreshListener2 which allows you to listen for Pull Up/Downs separately.
+
+### 1.2.5
+
+* Changed the custom attributes to be prefixed with 'ptr'. Should fixed compatibility with [ActionBarSherlock](http://actionbarsherlock.com) v4.
 
 ## Acknowledgments
 
