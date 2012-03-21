@@ -578,8 +578,8 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 				footerLayout.setTextColor(color);
 			}
 		}
-		if (a.hasValue(R.styleable.PullToRefresh_headerBackground)) {
-			this.setBackgroundResource(a.getResourceId(R.styleable.PullToRefresh_headerBackground, Color.WHITE));
+		if (a.hasValue(R.styleable.PullToRefresh_pr_headerBackground)) {
+			setBackgroundResource(a.getResourceId(R.styleable.PullToRefresh_pr_headerBackground, Color.WHITE));
 		}
 		if (a.hasValue(R.styleable.PullToRefresh_adapterViewBackground)) {
 			refreshableView.setBackgroundResource(a.getResourceId(R.styleable.PullToRefresh_adapterViewBackground,
