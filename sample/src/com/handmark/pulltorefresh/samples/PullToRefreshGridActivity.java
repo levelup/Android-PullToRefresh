@@ -47,7 +47,7 @@ public final class PullToRefreshGridActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.pull_to_refresh_grid);
+		setContentView(R.layout.activity_ptr_grid);
 
 		mPullRefreshGridView = (PullToRefreshGridView) findViewById(R.id.pull_refresh_grid);
 		mGridView = mPullRefreshGridView.getRefreshableView();
@@ -116,7 +116,7 @@ public final class PullToRefreshGridActivity extends Activity {
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		MenuItem setModeItem = menu.findItem(MENU_SET_MODE);
-		setModeItem.setTitle(mPullRefreshGridView.getMode() == Mode.BOTH ? "Change to MODE_PULL_DOWN"
+		setModeItem.setTitle(mPullRefreshGridView.getMode() == Mode.BOTH ? "Change to MODE_PULL_FROM_START"
 				: "Change to MODE_PULL_BOTH");
 
 		return super.onPrepareOptionsMenu(menu);
@@ -127,7 +127,7 @@ public final class PullToRefreshGridActivity extends Activity {
 		switch (item.getItemId()) {
 			case MENU_SET_MODE:
 				mPullRefreshGridView
-						.setMode(mPullRefreshGridView.getMode() == Mode.BOTH ? Mode.PULL_DOWN_TO_REFRESH
+						.setMode(mPullRefreshGridView.getMode() == Mode.BOTH ? Mode.PULL_FROM_START
 								: Mode.BOTH);
 				break;
 		}

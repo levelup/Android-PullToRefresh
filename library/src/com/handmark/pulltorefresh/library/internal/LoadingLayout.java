@@ -15,74 +15,83 @@
  *******************************************************************************/
 package com.handmark.pulltorefresh.library.internal;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Matrix;
+import android.graphics.Typeface;
+import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
-import android.text.Html;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
-import android.view.animation.RotateAnimation;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.ImageView.ScaleType;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.handmark.pulltorefresh.library.ILoadingLayout;
 import com.handmark.pulltorefresh.library.PullToRefreshBase.Mode;
+import com.handmark.pulltorefresh.library.PullToRefreshBase.Orientation;
 import com.handmark.pulltorefresh.library.R;
 
-public class LoadingLayout extends FrameLayout {
+@SuppressLint("ViewConstructor")
+public abstract class LoadingLayout extends FrameLayout implements ILoadingLayout {
 
-	static final int DEFAULT_ROTATION_ANIMATION_DURATION = 600;
+	static final String LOG_TAG = "PullToRefresh-LoadingLayout";
 
-	private final ImageView mHeaderImage;
-	private final Matrix mHeaderImageMatrix;
+	static final Interpolator ANIMATION_INTERPOLATOR = new LinearInterpolator();
+
+	protected final ImageView mHeaderImage;
+	protected final ProgressBar mHeaderProgress;
+
+	private boolean mUseIntrinsicAnimation;
 
 	private final TextView mHeaderText;
 	private final TextView mSubHeaderText;
 
-	private String mPullLabel;
-	private String mRefreshingLabel;
-	private String mReleaseLabel;
+	protected final Mode mMode;
+	protected final Orientation mScrollDirection;
 
-	private float mRotationPivotX, mRotationPivotY;
+	private CharSequence mPullLabel;
+	private CharSequence mRefreshingLabel;
+	private CharSequence mReleaseLabel;
 
-	private final Animation mRotateAnimation;
-
-	public LoadingLayout(Context context, final Mode mode, TypedArray attrs) {
+	public LoadingLayout(Context context, final Mode mode, final Orientation scrollDirection, TypedArray attrs) {
 		super(context);
-		ViewGroup header = (ViewGroup) LayoutInflater.from(context).inflate(R.layout.pull_to_refresh_header, this);
-		mHeaderText = (TextView) header.findViewById(R.id.pull_to_refresh_text);
-		mSubHeaderText = (TextView) header.findViewById(R.id.pull_to_refresh_sub_text);
-		mHeaderImage = (ImageView) header.findViewById(R.id.pull_to_refresh_image);
+		mMode = mode;
+		mScrollDirection = scrollDirection;
 
-		mHeaderImage.setScaleType(ScaleType.MATRIX);
-		mHeaderImageMatrix = new Matrix();
-		mHeaderImage.setImageMatrix(mHeaderImageMatrix);
+		resetPadding();
 
-		final Interpolator interpolator = new LinearInterpolator();
-		mRotateAnimation = new RotateAnimation(0, 360, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
-				0.5f);
-		mRotateAnimation.setInterpolator(interpolator);
-		mRotateAnimation.setDuration(DEFAULT_ROTATION_ANIMATION_DURATION);
-		mRotateAnimation.setRepeatCount(Animation.INFINITE);
-		mRotateAnimation.setRepeatMode(Animation.RESTART);
+		switch (scrollDirection) {
+			case HORIZONTAL:
+				LayoutInflater.from(context).inflate(R.layout.pull_to_refresh_header_horizontal, this);
+				break;
+			case VERTICAL:
+			default:
+				LayoutInflater.from(context).inflate(R.layout.pull_to_refresh_header_vertical, this);
+				break;
+		}
+
+		mHeaderText = (TextView) findViewById(R.id.pull_to_refresh_text);
+		mHeaderProgress = (ProgressBar) findViewById(R.id.pull_to_refresh_progress);
+		mSubHeaderText = (TextView) findViewById(R.id.pull_to_refresh_sub_text);
+		mHeaderImage = (ImageView) findViewById(R.id.pull_to_refresh_image);
 
 		switch (mode) {
-			case PULL_UP_TO_REFRESH:
+			case PULL_FROM_END:
 				// Load in labels
 				mPullLabel = context.getString(R.string.pull_to_refresh_from_bottom_pull_label);
 				mRefreshingLabel = context.getString(R.string.pull_to_refresh_from_bottom_refreshing_label);
 				mReleaseLabel = context.getString(R.string.pull_to_refresh_from_bottom_release_label);
 				break;
 
-			case PULL_DOWN_TO_REFRESH:
+			case PULL_FROM_START:
 			default:
 				// Load in labels
 				mPullLabel = context.getString(R.string.pull_to_refresh_pull_label);
@@ -91,18 +100,35 @@ public class LoadingLayout extends FrameLayout {
 				break;
 		}
 
-		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderTextColor)) {
-			ColorStateList colors = attrs.getColorStateList(R.styleable.PullToRefresh_ptrHeaderTextColor);
-			setTextColor(null != colors ? colors : ColorStateList.valueOf(0xFF000000));
-		}
-		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderSubTextColor)) {
-			ColorStateList colors = attrs.getColorStateList(R.styleable.PullToRefresh_ptrHeaderSubTextColor);
-			setSubTextColor(null != colors ? colors : ColorStateList.valueOf(0xFF000000));
-		}
 		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderBackground)) {
 			Drawable background = attrs.getDrawable(R.styleable.PullToRefresh_ptrHeaderBackground);
 			if (null != background) {
-				setBackgroundDrawable(background);
+				ViewCompat.setBackground(this, background);
+			}
+		}
+
+		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderTextAppearance)) {
+			TypedValue styleID = new TypedValue();
+			attrs.getValue(R.styleable.PullToRefresh_ptrHeaderTextAppearance, styleID);
+			setTextAppearance(styleID.data);
+		}
+		if (attrs.hasValue(R.styleable.PullToRefresh_ptrSubHeaderTextAppearance)) {
+			TypedValue styleID = new TypedValue();
+			attrs.getValue(R.styleable.PullToRefresh_ptrSubHeaderTextAppearance, styleID);
+			setSubTextAppearance(styleID.data);
+		}
+
+		// Text Color attrs need to be set after TextAppearance attrs
+		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderTextColor)) {
+			ColorStateList colors = attrs.getColorStateList(R.styleable.PullToRefresh_ptrHeaderTextColor);
+			if (null != colors) {
+				setTextColor(colors);
+			}
+		}
+		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderSubTextColor)) {
+			ColorStateList colors = attrs.getColorStateList(R.styleable.PullToRefresh_ptrHeaderSubTextColor);
+			if (null != colors) {
+				setSubTextColor(colors);
 			}
 		}
 
@@ -112,9 +138,32 @@ public class LoadingLayout extends FrameLayout {
 			imageDrawable = attrs.getDrawable(R.styleable.PullToRefresh_ptrDrawable);
 		}
 
+		// Check Specific Drawable from Attrs, these overrite the generic
+		// drawable attr above
+		switch (mode) {
+			case PULL_FROM_START:
+			default:
+				if (attrs.hasValue(R.styleable.PullToRefresh_ptrDrawableStart)) {
+					imageDrawable = attrs.getDrawable(R.styleable.PullToRefresh_ptrDrawableStart);
+				} else if (attrs.hasValue(R.styleable.PullToRefresh_ptrDrawableTop)) {
+					Utils.warnDeprecation("ptrDrawableTop", "ptrDrawableStart");
+					imageDrawable = attrs.getDrawable(R.styleable.PullToRefresh_ptrDrawableTop);
+				}
+				break;
+
+			case PULL_FROM_END:
+				if (attrs.hasValue(R.styleable.PullToRefresh_ptrDrawableEnd)) {
+					imageDrawable = attrs.getDrawable(R.styleable.PullToRefresh_ptrDrawableEnd);
+				} else if (attrs.hasValue(R.styleable.PullToRefresh_ptrDrawableBottom)) {
+					Utils.warnDeprecation("ptrDrawableBottom", "ptrDrawableEnd");
+					imageDrawable = attrs.getDrawable(R.styleable.PullToRefresh_ptrDrawableBottom);
+				}
+				break;
+		}
+
 		// If we don't have a user defined drawable, load the default
 		if (null == imageDrawable) {
-			imageDrawable = context.getResources().getDrawable(R.drawable.default_ptr_drawable);
+			imageDrawable = context.getResources().getDrawable(getDefaultDrawableResId());
 		}
 
 		// Set Drawable, and save width/height
@@ -123,95 +172,189 @@ public class LoadingLayout extends FrameLayout {
 		reset();
 	}
 
-	public void reset() {
-		mHeaderText.setText(wrapHtmlLabel(mPullLabel));
-		mHeaderImage.setVisibility(View.VISIBLE);
-		mHeaderImage.clearAnimation();
+	public final void adjustHeightUsingBottomPadding(final int height) {
+		setPadding(getPaddingLeft(), getPaddingTop(), getPaddingRight(), getPaddingBottom() + height
+				- getMeasuredHeight());
+	}
 
-		resetImageRotation();
+	public final void adjustHeightUsingTopPadding(final int height) {
+		setPadding(getPaddingLeft(), getPaddingTop() + height - getMeasuredHeight(), getPaddingRight(),
+				getPaddingBottom());
+	}
 
-		if (TextUtils.isEmpty(mSubHeaderText.getText())) {
-			mSubHeaderText.setVisibility(View.GONE);
-		} else {
-			mSubHeaderText.setVisibility(View.VISIBLE);
+	public final void adjustWidthUsingLeftPadding(final int width) {
+		setPadding(getPaddingLeft() + width - getMeasuredWidth(), getPaddingTop(), getPaddingRight(),
+				getPaddingBottom());
+	}
+
+	public final void adjustWidthUsingRightPadding(final int width) {
+		setPadding(getPaddingLeft(), getPaddingTop(), getPaddingRight() + width - getMeasuredWidth(),
+				getPaddingBottom());
+	}
+
+	public final void onPull(float scaleOfLayout) {
+		if (!mUseIntrinsicAnimation) {
+			onPullImpl(scaleOfLayout);
 		}
 	}
 
-	public void releaseToRefresh() {
-		mHeaderText.setText(wrapHtmlLabel(mReleaseLabel));
+	public final void pullToRefresh() {
+		if (null != mHeaderText) {
+			mHeaderText.setText(mPullLabel);
+		}
+
+		// Now call the callback
+		pullToRefreshImpl();
 	}
 
-	public void setPullLabel(String pullLabel) {
+	public final void refreshing() {
+		if (null != mHeaderText) {
+			mHeaderText.setText(mRefreshingLabel);
+		}
+
+		if (mUseIntrinsicAnimation) {
+			((AnimationDrawable) mHeaderImage.getDrawable()).start();
+		} else {
+			// Now call the callback
+			refreshingImpl();
+		}
+
+		if (null != mSubHeaderText) {
+			mSubHeaderText.setVisibility(View.GONE);
+		}
+	}
+
+	public final void releaseToRefresh() {
+		if (null != mHeaderText) {
+			mHeaderText.setText(mReleaseLabel);
+		}
+
+		// Now call the callback
+		releaseToRefreshImpl();
+	}
+
+	public final void reset() {
+		if (null != mHeaderText) {
+			mHeaderText.setText(mPullLabel);
+		}
+		mHeaderImage.setVisibility(View.VISIBLE);
+
+		if (mUseIntrinsicAnimation) {
+			((AnimationDrawable) mHeaderImage.getDrawable()).stop();
+		} else {
+			// Now call the callback
+			resetImpl();
+		}
+
+		if (null != mSubHeaderText) {
+			if (TextUtils.isEmpty(mSubHeaderText.getText())) {
+				mSubHeaderText.setVisibility(View.GONE);
+			} else {
+				mSubHeaderText.setVisibility(View.VISIBLE);
+			}
+		}
+	}
+
+	public final void resetForMeasure() {
+		resetPadding();
+	}
+
+	@Override
+	public void setLastUpdatedLabel(CharSequence label) {
+		setSubHeaderText(label);
+	}
+
+	public final void setLoadingDrawable(Drawable imageDrawable) {
+		// Set Drawable
+		mHeaderImage.setImageDrawable(imageDrawable);
+		mUseIntrinsicAnimation = (imageDrawable instanceof AnimationDrawable);
+
+		// Now call the callback
+		onLoadingDrawableSet(imageDrawable);
+	}
+
+	public void setPullLabel(CharSequence pullLabel) {
 		mPullLabel = pullLabel;
 	}
 
-	public void refreshing() {
-		mHeaderText.setText(wrapHtmlLabel(mRefreshingLabel));
-		mHeaderImage.startAnimation(mRotateAnimation);
-
-		mSubHeaderText.setVisibility(View.GONE);
-	}
-
-	public void setRefreshingLabel(String refreshingLabel) {
+	public void setRefreshingLabel(CharSequence refreshingLabel) {
 		mRefreshingLabel = refreshingLabel;
 	}
 
-	public void setReleaseLabel(String releaseLabel) {
+	public void setReleaseLabel(CharSequence releaseLabel) {
 		mReleaseLabel = releaseLabel;
 	}
 
-	public void pullToRefresh() {
-		mHeaderText.setText(wrapHtmlLabel(mPullLabel));
+	@Override
+	public void setTextTypeface(Typeface tf) {
+		mHeaderText.setTypeface(tf);
 	}
 
-	public void setTextColor(ColorStateList color) {
-		mHeaderText.setTextColor(color);
-		mSubHeaderText.setTextColor(color);
+	/**
+	 * Callbacks for derivative Layouts
+	 */
+
+	protected abstract int getDefaultDrawableResId();
+
+	protected abstract void onLoadingDrawableSet(Drawable imageDrawable);
+
+	protected abstract void onPullImpl(float scaleOfLayout);
+
+	protected abstract void pullToRefreshImpl();
+
+	protected abstract void refreshingImpl();
+
+	protected abstract void releaseToRefreshImpl();
+
+	protected abstract void resetImpl();
+
+	private void resetPadding() {
+		Resources res = getResources();
+		final int tbPadding = res.getDimensionPixelSize(R.dimen.header_footer_top_bottom_padding);
+		final int lrPadding = res.getDimensionPixelSize(R.dimen.header_footer_left_right_padding);
+		setPadding(lrPadding, tbPadding, lrPadding, tbPadding);
+
 	}
 
-	public void setSubTextColor(ColorStateList color) {
-		mSubHeaderText.setTextColor(color);
-	}
-
-	public void setTextColor(int color) {
-		setTextColor(ColorStateList.valueOf(color));
-	}
-
-	public void setLoadingDrawable(Drawable imageDrawable) {
-		// Set Drawable, and save width/height
-		mHeaderImage.setImageDrawable(imageDrawable);
-		mRotationPivotX = imageDrawable.getIntrinsicWidth() / 2f;
-		mRotationPivotY = imageDrawable.getIntrinsicHeight() / 2f;
-	}
-
-	public void setSubTextColor(int color) {
-		setSubTextColor(ColorStateList.valueOf(color));
-	}
-
-	public void setSubHeaderText(CharSequence label) {
-		if (TextUtils.isEmpty(label)) {
-			mSubHeaderText.setVisibility(View.GONE);
-		} else {
-			mSubHeaderText.setText(label);
-			mSubHeaderText.setVisibility(View.VISIBLE);
+	private void setSubHeaderText(CharSequence label) {
+		if (null != mSubHeaderText) {
+			if (TextUtils.isEmpty(label)) {
+				mSubHeaderText.setVisibility(View.GONE);
+			} else {
+				mSubHeaderText.setText(label);
+				mSubHeaderText.setVisibility(View.VISIBLE);
+			}
 		}
 	}
 
-	public void onPullY(float scaleOfHeight) {
-		mHeaderImageMatrix.setRotate(scaleOfHeight * 90, mRotationPivotX, mRotationPivotY);
-		mHeaderImage.setImageMatrix(mHeaderImageMatrix);
-	}
-
-	private void resetImageRotation() {
-		mHeaderImageMatrix.reset();
-		mHeaderImage.setImageMatrix(mHeaderImageMatrix);
-	}
-	
-	private CharSequence wrapHtmlLabel(String label) {
-		if (!isInEditMode()) {
-			return Html.fromHtml(label);
-		} else {
-			return label;
+	private void setSubTextAppearance(int value) {
+		if (null != mSubHeaderText) {
+			mSubHeaderText.setTextAppearance(getContext(), value);
 		}
 	}
+
+	private void setSubTextColor(ColorStateList color) {
+		if (null != mSubHeaderText) {
+			mSubHeaderText.setTextColor(color);
+		}
+	}
+
+	private void setTextAppearance(int value) {
+		if (null != mHeaderText) {
+			mHeaderText.setTextAppearance(getContext(), value);
+		}
+		if (null != mSubHeaderText) {
+			mSubHeaderText.setTextAppearance(getContext(), value);
+		}
+	}
+
+	private void setTextColor(ColorStateList color) {
+		if (null != mHeaderText) {
+			mHeaderText.setTextColor(color);
+		}
+		if (null != mSubHeaderText) {
+			mSubHeaderText.setTextColor(color);
+		}
+	}
+
 }
